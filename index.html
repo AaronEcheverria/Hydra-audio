@@ -1,0 +1,232 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi sketch Hydra</title>
+  <script src="https://unpkg.com/hydra-synth"></script>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+    }
+    canvas {
+      display: block;
+    }
+    #audioButton {
+      position: fixed;
+      z-index: 10;
+      top: 15px;
+      left: 15px;
+      padding: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button id="audioButton">▶ Iniciar música</button>
+  <script>
+    const hydra = new Hydra({ detectAudio: false });
+
+    const audio = new Audio(
+      "https://raw.githubusercontent.com/AaronEcheverria/Hydra-audio/main/leberch-industrial-580501.mp3"
+    );
+    audio.loop = false;
+
+    document.getElementById("audioButton").onclick = async () => {
+      try {
+        await audio.play();
+        document.getElementById("audioButton").textContent = "♫ Música reproduciéndose";
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    let audio = new Audio(
+  "https://raw.githubusercontent.com/AaronEcheverria/Hydra-audio/main/leberch-industrial-580501.mp3"
+);
+
+audio.volume = 1;
+audio.loop = false;
+audio.preload = "auto";
+
+audio.addEventListener("canplay", () => {
+  console.log("MP3 cargado correctamente");
+});
+
+audio.addEventListener("error", () => {
+  console.error("No se pudo cargar el archivo MP3", audio.error);
+});
+
+document.addEventListener("click", () => {
+  audio.play().catch(console.error);
+}, { once: true });
+
+
+let forma = 1;
+let velocidad = 1;
+let cantidad = 1;
+let repeticion = 1;
+
+let saturacion = 1;
+let orden = 3;
+let pantallas = 1;
+let rotacionActiva = true;
+
+let posicionX = 0;
+
+let variacionNoise = 6;
+let variacionNoise2 = 11;
+let variacionNoise3 = 16;
+
+document.addEventListener("keydown", (e) => {
+  const tecla = e.key.toLowerCase();
+
+  // Forma
+  if (e.key === "ArrowUp") {
+    forma += 0.1;
+  }
+
+  if (e.key === "ArrowDown") {
+    forma = Math.max(0.1, forma - 0.1);
+  }
+
+  // Velocidad y repetición
+  if (e.key === "ArrowRight") {
+    velocidad += 0.2;
+    repeticion += 0.2;
+  }
+
+  if (e.key === "ArrowLeft") {
+    velocidad = Math.max(0.1, velocidad - 0.2);
+    repeticion = Math.max(0.2, repeticion - 0.2);
+  }
+
+  // Saturación: Q / E
+  if (tecla === "q") {
+    saturacion = Math.max(0, saturacion - 0.1);
+  }
+
+  if (tecla === "e") {
+    saturacion = Math.min(2, saturacion + 0.1);
+  }
+
+  // Orden visual: Z / X
+  if (tecla === "z") {
+    orden = Math.max(1, orden - 1);
+  }
+
+  if (tecla === "x") {
+    orden = Math.min(12, orden + 1);
+  }
+
+  // Número de pantallas: N / M
+  if (tecla === "n") {
+    pantallas = Math.max(1, pantallas - 1);
+  }
+
+  if (tecla === "m") {
+    pantallas = Math.min(8, pantallas + 1);
+  }
+
+  // Rotación: R
+  if (tecla === "r") {
+    rotacionActiva = !rotacionActiva;
+  }
+
+  // Posición horizontal: J / L
+  if (tecla === "j") {
+    posicionX -= 0.02;
+  }
+
+  if (tecla === "l") {
+    posicionX += 0.02;
+  }
+
+  // Aleatorizar el ruido: Y
+  if (tecla === "y") {
+    variacionNoise = Math.random() * 20 + 1;
+    variacionNoise2 = Math.random() * 20 + 1;
+    variacionNoise3 = Math.random() * 20 + 1;
+  }
+
+  // Evitar el desplazamiento de la página con las flechas
+  if (e.key.startsWith("Arrow")) {
+    e.preventDefault();
+  }
+});
+
+noise(() => variacionNoise, 0.021)
+  .mult(
+    osc(() => 9 * cantidad, 0, 0)
+  )
+  .mult(
+    noise(() => variacionNoise2, 0.03)
+      .brightness(1.2)
+      .contrast(2)
+      .mult(osc(9, 0, 0.7))
+  )
+  .diff(
+    noise(() => variacionNoise3, 0.04)
+      .brightness(0.2)
+      .contrast(1.3)
+      .mult(osc(9, 0, 0.2))
+      .rotate(() =>
+        rotacionActiva ? time / (33 / velocidad) : 0
+      )
+  )
+  .scale(() =>
+    Math.sin(time * velocidad / 6.2) * 0.12 * forma + 0.15
+  )
+  .modulateScale(
+    osc(3, 0, 0.2)
+      .mult(
+        osc(3, 0, 1)
+          .rotate(Math.PI / 2)
+      )
+      .rotate(() =>
+        rotacionActiva ? time * velocidad / 25 : 0
+      )
+      .scale(0.39)
+      .scale(1, 0.6, 10)
+      .invert(),
+    () => Math.sin(time * velocidad / 5.3) * 1.5 + 3 * forma
+  )
+  .rotate(() =>
+    rotacionActiva ? time * velocidad / 22 : 0
+  )
+  .mult(
+    shape(
+      () => Math.max(3, Math.round(50 * repeticion)),
+      0.9,
+      1
+    )
+      .scale(2, 0.20, 0.50)
+  )
+  .mult(
+    shape(
+      () => Math.max(3, Math.round(50 * repeticion)),
+      0.20,
+      0.30
+    )
+      .scale(() => 20 * forma, 0.2, 30)
+  )
+  .saturate(() => saturacion)
+  .repeat(
+    () => pantallas,
+    () => pantallas
+  )
+  .modulate(
+    osc(() => orden, 0, 0.2),
+    () => orden * 0.05
+  )
+  .scrollX(() => posicionX, 0)
+  .out();
+
+  </script>
+</body>
+</html>
